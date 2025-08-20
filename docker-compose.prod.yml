@@ -1,0 +1,61 @@
+version: '3.8'
+
+services:
+  # MySQL MCP Server - Production Configuration
+  mcp-server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: mysql-mcp-server-prod
+    ports:
+      - "8000:8000"
+    environment:
+      # Database configuration - Use external MySQL in production
+      DB_HOST: ${DB_HOST}
+      DB_PORT: ${DB_PORT:-3306}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: ${DB_NAME}
+      # Connection pool settings
+      DB_POOL_SIZE: ${DB_POOL_SIZE:-10}
+      DB_MAX_OVERFLOW: ${DB_MAX_OVERFLOW:-20}
+      # Connection timeout settings
+      DB_CONNECT_TIMEOUT: ${DB_CONNECT_TIMEOUT:-10}
+      DB_READ_TIMEOUT: ${DB_READ_TIMEOUT:-30}
+      DB_WRITE_TIMEOUT: ${DB_WRITE_TIMEOUT:-30}
+    restart: unless-stopped
+    networks:
+      - mcp-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          cpus: '0.5'
+          memory: 256M
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp:noexec,nosuid,size=100m
+
+networks:
+  mcp-network:
+    driver: bridge

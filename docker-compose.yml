@@ -1,0 +1,68 @@
+version: '3.8'
+
+services:
+  # MySQL MCP Server
+  mcp-server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: mysql-mcp-server
+    ports:
+      - "8000:8000"
+    environment:
+      # Database configuration
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_USER: mcpuser
+      DB_PASSWORD: mcppassword
+      DB_NAME: mcp_database
+      # Connection pool settings
+      DB_POOL_SIZE: 5
+      DB_MAX_OVERFLOW: 10
+      # Connection timeout settings
+      DB_CONNECT_TIMEOUT: 10
+      DB_READ_TIMEOUT: 30
+      DB_WRITE_TIMEOUT: 30
+    depends_on:
+      mysql:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - mcp-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # MySQL Database (for development/testing)
+  mysql:
+    image: mysql:8.0
+    container_name: mysql-mcp-db
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: mcp_database
+      MYSQL_USER: mcpuser
+      MYSQL_PASSWORD: mcppassword
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    restart: unless-stopped
+    networks:
+      - mcp-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-prootpassword"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+volumes:
+  mysql_data:
+    driver: local
+
+networks:
+  mcp-network:
+    driver: bridge
