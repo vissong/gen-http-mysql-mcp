@@ -23,8 +23,8 @@ jobs:
 
     - name: Build Docker image
       run: |
-        docker build -t ${{ secrets.DOCKER_HUB_USERNAME }}/gen-http-mysql-mcp:$(date +%s) .
+        docker build -t ${{ secrets.DOCKER_HUB_USERNAME }}/gen-http-mysql-mcp:${{ github.run_id }} .
 
     - name: Push Docker image
       run: |
-        docker push ${{ secrets.DOCKER_HUB_USERNAME }}/gen-http-mysql-mcp:$(date +%s)
+        docker push ${{ secrets.DOCKER_HUB_USERNAME }}/gen-http-mysql-mcp:${{ github.run_id }}
