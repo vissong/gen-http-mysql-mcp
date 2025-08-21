@@ -25,12 +25,13 @@ Executes SQL SELECT queries safely with the following restrictions:
 - Dangerous keywords (DROP, DELETE, UPDATE, etc.) are blocked
 - Returns results as structured data with metadata
 
-### 3. `execute_write_operation`
+### 3. `execute_write_operation` (Optional)
 Executes SQL write operations (INSERT and UPDATE) safely with the following restrictions:
 - Only INSERT and UPDATE statements are allowed
 - DELETE, DROP, TRUNCATE, ALTER, CREATE operations are blocked
 - Returns affected row count and last insert ID (for INSERT operations)
 - Provides transaction safety with automatic commit
+- **Note**: This tool is only available when `ENABLE_WRITE_OPERATIONS=true` is set in the configuration
 
 ### 4. `test_database_connection`
 Tests the database connection to ensure proper configuration and connectivity.
@@ -72,7 +73,17 @@ DB_MAX_OVERFLOW=10
 DB_CONNECT_TIMEOUT=10
 DB_READ_TIMEOUT=30
 DB_WRITE_TIMEOUT=30
+
+# Optional: Enable write operations (INSERT/UPDATE) - set to true to enable
+ENABLE_WRITE_OPERATIONS=false
 ```
+
+### Configuration Options
+
+- **ENABLE_WRITE_OPERATIONS**: Controls whether the `execute_write_operation` tool is available
+  - `false` (default): Only read-only operations are allowed (SELECT queries only)
+  - `true`: Enables INSERT and UPDATE operations through the `execute_write_operation` tool
+  - For security reasons, DELETE, DROP, TRUNCATE, ALTER, and CREATE operations are always blocked
 
 ## Usage
 

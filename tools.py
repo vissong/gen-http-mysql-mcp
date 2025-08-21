@@ -15,6 +15,16 @@ logger = logging.getLogger(__name__)
 # Initialize FastMCP
 mcp = FastMCP("MySQL Database MCP Server")
 
+# 获取数据库配置以确定是否启用写操作工具
+def _is_write_operations_enabled() -> bool:
+    """检查是否启用写操作工具"""
+    try:
+        db_manager = get_db_manager()
+        return db_manager.config.enable_write_operations
+    except Exception as e:
+        logger.warning(f"Failed to check write operations config: {e}")
+        return False
+
 
 @mcp.tool()
 def get_database_schema() -> List[Dict[str, Any]]:
@@ -165,7 +175,6 @@ def execute_sql_query(sql_query: str) -> Dict[str, Any]:
         }
 
 
-@mcp.tool()
 def execute_write_operation(sql_query: str) -> Dict[str, Any]:
     """
     Execute a SQL write operation (INSERT or UPDATE) and return the results.
@@ -279,3 +288,37 @@ def test_database_connection() -> Dict[str, Any]:
             "message": error_msg,
             "database_name": "Unknown"
         }
+
+
+# 动态注册写操作工具（根据配置决定是否注册）
+def _register_write_operation_tool():
+    """根据配置动态注册写操作工具"""
+    if _is_write_operations_enabled():
+        logger.info("Write operations are enabled, registering execute_write_operation tool")
+
+        # 动态注册工具
+        @mcp.tool()
+        def execute_write_operation_registered(sql_query: str) -> Dict[str, Any]:
+            """
+            Execute a SQL write operation (INSERT or UPDATE) and return the results.
+
+            This tool allows INSERT and UPDATE statements but blocks DELETE operations for safety.
+            The query will be executed against the configured MySQL database.
+
+            Args:
+                sql_query (str): The SQL INSERT or UPDATE query to execute
+
+            Returns:
+                Dict[str, Any]: Dictionary containing:
+                    - success: Boolean indicating if query was successful
+                    - affected_rows: Number of rows affected by the operation
+                    - last_insert_id: Last inserted ID (for INSERT operations, None for UPDATE)
+                    - message: Success or error message
+            """
+            return execute_write_operation(sql_query)
+    else:
+        logger.info("Write operations are disabled, execute_write_operation tool will not be available")
+
+
+# 在模块加载时执行动态注册
+_register_write_operation_tool()

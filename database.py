@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 
 class DatabaseConfig:
     """Database configuration class"""
-    
+
     def __init__(self):
         self.host = os.getenv('DB_HOST', 'localhost')
         self.port = int(os.getenv('DB_PORT', '3306'))
@@ -35,6 +35,8 @@ class DatabaseConfig:
         self.connect_timeout = int(os.getenv('DB_CONNECT_TIMEOUT', '10'))
         self.read_timeout = int(os.getenv('DB_READ_TIMEOUT', '30'))
         self.write_timeout = int(os.getenv('DB_WRITE_TIMEOUT', '30'))
+        # 控制是否启用写操作工具的配置项
+        self.enable_write_operations = os.getenv('ENABLE_WRITE_OPERATIONS', 'false').lower() in ('true', '1', 'yes', 'on')
     
     def validate(self) -> bool:
         """Validate required configuration parameters"""
