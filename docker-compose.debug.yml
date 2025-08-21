@@ -1,12 +1,12 @@
 version: '3.8'
 
 services:
-  # MySQL MCP Server
+  # MySQL MCP Server - Debug Configuration
   mcp-server:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: mysql-mcp-server
+    container_name: mysql-mcp-server-debug
     ports:
       - "8000:8000"
     environment:
@@ -24,14 +24,14 @@ services:
       DB_READ_TIMEOUT: 30
       DB_WRITE_TIMEOUT: 30
       # Write operations control
-      ENABLE_WRITE_OPERATIONS: false
-      # Request logging configuration
+      ENABLE_WRITE_OPERATIONS: true
+      # Debug logging configuration
       ENABLE_REQUEST_LOGGING: true
-      ENABLE_DETAILED_REQUEST_LOGGING: false
-      REQUEST_LOG_LEVEL: INFO
-      MAX_PAYLOAD_LOG_LENGTH: 2000
+      ENABLE_DETAILED_REQUEST_LOGGING: true
+      REQUEST_LOG_LEVEL: DEBUG
+      MAX_PAYLOAD_LOG_LENGTH: 5000
       # General logging level
-      LOG_LEVEL: INFO
+      LOG_LEVEL: DEBUG
     depends_on:
       mysql:
         condition: service_healthy
@@ -48,7 +48,7 @@ services:
   # MySQL Database (for development/testing)
   mysql:
     image: mysql:8.0
-    container_name: mysql-mcp-db
+    container_name: mysql-mcp-db-debug
     environment:
       MYSQL_ROOT_PASSWORD: rootpassword
       MYSQL_DATABASE: mcp_database
@@ -57,7 +57,7 @@ services:
     ports:
       - "3306:3306"
     volumes:
-      - mysql_data:/var/lib/mysql
+      - mysql_debug_data:/var/lib/mysql
     restart: unless-stopped
     networks:
       - mcp-network
@@ -69,7 +69,7 @@ services:
       start_period: 30s
 
 volumes:
-  mysql_data:
+  mysql_debug_data:
     driver: local
 
 networks:

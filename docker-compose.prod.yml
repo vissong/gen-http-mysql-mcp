@@ -25,6 +25,13 @@ services:
       DB_WRITE_TIMEOUT: ${DB_WRITE_TIMEOUT:-30}
       # Write operations control
       ENABLE_WRITE_OPERATIONS: ${ENABLE_WRITE_OPERATIONS:-false}
+      # Request logging configuration
+      ENABLE_REQUEST_LOGGING: ${ENABLE_REQUEST_LOGGING:-true}
+      ENABLE_DETAILED_REQUEST_LOGGING: ${ENABLE_DETAILED_REQUEST_LOGGING:-false}
+      REQUEST_LOG_LEVEL: ${REQUEST_LOG_LEVEL:-INFO}
+      MAX_PAYLOAD_LOG_LENGTH: ${MAX_PAYLOAD_LOG_LENGTH:-2000}
+      # General logging level
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
     restart: unless-stopped
     networks:
       - mcp-network

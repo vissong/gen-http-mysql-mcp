@@ -6,14 +6,44 @@ table description retrieval and SQL query execution.
 """
 
 import logging
+import os
 from typing import List, Dict, Any
 from fastmcp import FastMCP
 from database import get_db_manager
+from request_logging_middleware import DetailedRequestLoggingMiddleware, SimpleRequestLoggingMiddleware
 
 logger = logging.getLogger(__name__)
 
 # Initialize FastMCP
 mcp = FastMCP("MySQL Database MCP Server")
+
+# 添加请求日志中间件
+def _setup_request_logging():
+    """设置请求日志中间件"""
+    # 从环境变量获取日志配置
+    enable_detailed_logging = os.getenv('ENABLE_DETAILED_REQUEST_LOGGING', 'false').lower() in ('true', '1', 'yes', 'on')
+    enable_simple_logging = os.getenv('ENABLE_REQUEST_LOGGING', 'true').lower() in ('true', '1', 'yes', 'on')
+
+    if enable_detailed_logging:
+        # 详细日志模式（用于调试）
+        detailed_middleware = DetailedRequestLoggingMiddleware(
+            include_headers=True,
+            include_payloads=True,
+            max_payload_length=int(os.getenv('MAX_PAYLOAD_LOG_LENGTH', '2000')),
+            log_level=os.getenv('REQUEST_LOG_LEVEL', 'INFO')
+        )
+        mcp.add_middleware(detailed_middleware)
+        logger.info("已启用详细请求日志记录中间件")
+    elif enable_simple_logging:
+        # 简单日志模式（用于生产）
+        simple_middleware = SimpleRequestLoggingMiddleware()
+        mcp.add_middleware(simple_middleware)
+        logger.info("已启用简单请求日志记录中间件")
+    else:
+        logger.info("请求日志记录中间件已禁用")
+
+# 设置请求日志
+_setup_request_logging()
 
 # 获取数据库配置以确定是否启用写操作工具
 def _is_write_operations_enabled() -> bool:

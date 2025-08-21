@@ -1,7 +1,7 @@
 # MySQL MCP Server Makefile
 # Provides convenient commands for Docker operations
 
-.PHONY: help build run stop clean logs shell test dev prod
+.PHONY: help build run stop clean logs shell test dev prod debug
 
 # Default target
 help:
@@ -9,6 +9,7 @@ help:
 	@echo "================================="
 	@echo "build     - Build the Docker image"
 	@echo "dev       - Run development environment with MySQL"
+	@echo "debug     - Run debug environment with detailed logging"
 	@echo "prod      - Run production environment (requires external DB)"
 	@echo "stop      - Stop all containers"
 	@echo "clean     - Stop and remove containers, networks, and volumes"
@@ -29,6 +30,15 @@ dev:
 	@echo "Services started. MCP Server: http://localhost:8000"
 	@echo "MySQL: localhost:3306 (user: mcpuser, password: mcppassword)"
 
+# Run debug environment
+debug:
+	@echo "Starting debug environment with detailed logging..."
+	docker-compose -f docker-compose.debug.yml up -d
+	@echo "Debug services started. MCP Server: http://localhost:8000"
+	@echo "MySQL: localhost:3306 (user: mcpuser, password: mcppassword)"
+	@echo "Detailed request logging is ENABLED"
+	@echo "Use 'make logs-debug' to view detailed logs"
+
 # Run production environment
 prod:
 	@echo "Starting production environment..."
@@ -44,12 +54,14 @@ stop:
 	@echo "Stopping all containers..."
 	docker-compose down
 	docker-compose -f docker-compose.prod.yml down 2>/dev/null || true
+	docker-compose -f docker-compose.debug.yml down 2>/dev/null || true
 
 # Clean up everything
 clean:
 	@echo "Cleaning up containers, networks, and volumes..."
 	docker-compose down -v --remove-orphans
 	docker-compose -f docker-compose.prod.yml down -v --remove-orphans 2>/dev/null || true
+	docker-compose -f docker-compose.debug.yml down -v --remove-orphans 2>/dev/null || true
 	docker system prune -f
 
 # Show logs
@@ -86,6 +98,17 @@ logs-mcp:
 
 logs-mysql:
 	docker-compose logs -f mysql
+
+# Debug environment logs
+logs-debug:
+	@echo "Showing debug environment logs..."
+	docker-compose -f docker-compose.debug.yml logs -f
+
+logs-debug-mcp:
+	docker-compose -f docker-compose.debug.yml logs -f mcp-server
+
+logs-debug-mysql:
+	docker-compose -f docker-compose.debug.yml logs -f mysql
 
 # Database operations
 db-shell:

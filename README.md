@@ -85,6 +85,13 @@ ENABLE_WRITE_OPERATIONS=false
   - `true`: Enables INSERT and UPDATE operations through the `execute_write_operation` tool
   - For security reasons, DELETE, DROP, TRUNCATE, ALTER, and CREATE operations are always blocked
 
+- **Request Logging Configuration**:
+  - **ENABLE_REQUEST_LOGGING**: Enable basic request logging (`true` by default)
+  - **ENABLE_DETAILED_REQUEST_LOGGING**: Enable detailed request logging with headers and payloads (`false` by default)
+  - **REQUEST_LOG_LEVEL**: Log level for request logging (`INFO` by default)
+  - **MAX_PAYLOAD_LOG_LENGTH**: Maximum length of logged payloads (`2000` by default)
+  - **LOG_LEVEL**: General application log level (`INFO` by default)
+
 ## Usage
 
 ### Running the Server
@@ -189,11 +196,53 @@ The server includes comprehensive error handling:
 
 ## Logging
 
-The server provides detailed logging including:
+The server provides comprehensive logging capabilities:
+
+### Basic Logging
 - Connection status and database information
 - Query execution results and performance
 - Error messages with context
 - Server startup and shutdown events
+
+### Request Logging
+The server includes advanced request logging middleware to help debug client connection issues:
+
+#### Simple Request Logging (Default)
+```bash
+# Enabled by default, shows basic request information
+ENABLE_REQUEST_LOGGING=true
+```
+
+#### Detailed Request Logging (Debug Mode)
+```bash
+# Enable detailed logging with headers and payloads
+ENABLE_DETAILED_REQUEST_LOGGING=true
+REQUEST_LOG_LEVEL=DEBUG
+MAX_PAYLOAD_LOG_LENGTH=5000
+LOG_LEVEL=DEBUG
+```
+
+### Docker Debug Environment
+For debugging client connection issues, use the debug environment:
+
+```bash
+# Start debug environment with detailed logging
+make debug
+
+# View debug logs
+make logs-debug
+
+# View only MCP server debug logs
+make logs-debug-mcp
+```
+
+The debug environment enables:
+- Detailed request/response logging
+- HTTP headers logging
+- Request payload logging
+- Response payload logging
+- Execution timing
+- Client information tracking
 
 ## Contributing
 

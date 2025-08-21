@@ -23,11 +23,13 @@ Environment Variables:
 
 import logging
 import sys
+import os
 from tools import mcp
 
-# Configure logging
+# Configure logging level from environment variable
+log_level = os.getenv('LOG_LEVEL', 'INFO').upper()
 logging.basicConfig(
-    level=logging.INFO,
+    level=getattr(logging, log_level, logging.INFO),
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
@@ -50,7 +52,7 @@ def main():
         logger.info("MySQL MCP Server is ready to serve requests")
 
         # Run the MCP server
-        mcp.run()
+        mcp.run(transport="http", host="0.0.0.0", port=8000)
 
     except KeyboardInterrupt:
         logger.info("Server shutdown requested by user")
@@ -60,4 +62,4 @@ def main():
 
 
 if __name__ == "__main__":
-    mcp.run(transport="http", host="0.0.0.0", port=8000)
+    main()

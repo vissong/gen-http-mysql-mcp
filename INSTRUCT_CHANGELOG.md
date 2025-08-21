@@ -1,5 +1,131 @@
 # 指令变更日志 (INSTRUCT_CHANGELOG)
 
+## 2025-08-21 - 添加详细请求日志记录功能
+
+### 变更描述
+为了帮助调试客户端连接问题，添加了详细的请求日志记录中间件，可以记录客户端发送的请求、HTTP 头信息、响应内容等详细信息。
+
+### 新增文件
+
+1. **request_logging_middleware.py**
+   - 实现了 `DetailedRequestLoggingMiddleware` 详细请求日志中间件
+   - 实现了 `SimpleRequestLoggingMiddleware` 简单请求日志中间件
+   - 支持记录 HTTP 头信息、请求体、响应体、执行时间等
+   - 支持可配置的日志级别和内容长度限制
+
+2. **docker-compose.debug.yml**
+   - 专门用于调试的 Docker Compose 配置
+   - 启用详细日志记录和写操作功能
+   - 使用独立的数据卷避免与开发环境冲突
+
+3. **DEBUG_GUIDE.md**
+   - 详细的调试指南文档
+   - 包含常见问题诊断步骤
+   - 提供日志分析技巧和配置建议
+
+### 修改的文件
+
+1. **main.py**
+   - 添加了 `LOG_LEVEL` 环境变量支持
+   - 改进了日志配置，支持动态日志级别
+
+2. **tools.py**
+   - 集成了请求日志中间件
+   - 添加了 `_setup_request_logging()` 函数来配置日志中间件
+   - 支持根据环境变量动态启用不同级别的日志记录
+
+3. **.env.example**
+   - 添加了请求日志相关的环境变量配置
+   - 添加了通用日志级别配置
+
+4. **docker-compose.yml** 和 **docker-compose.prod.yml**
+   - 添加了请求日志相关的环境变量
+   - 添加了通用日志级别配置
+
+5. **Makefile**
+   - 添加了 `debug` 命令启动调试环境
+   - 添加了 `logs-debug`、`logs-debug-mcp`、`logs-debug-mysql` 命令
+   - 更新了 `stop` 和 `clean` 命令以支持调试环境
+
+6. **README.md**
+   - 添加了请求日志配置选项说明
+   - 添加了详细的日志记录功能介绍
+   - 添加了调试环境使用说明
+
+### 功能特性
+
+#### 详细请求日志记录
+- **HTTP 头信息记录**: 记录客户端发送的所有 HTTP 头
+- **请求体记录**: 记录完整的 MCP 请求内容
+- **响应体记录**: 记录服务器响应内容
+- **客户端信息**: 记录客户端 IP、User-Agent 等信息
+- **执行时间**: 精确记录每个请求的处理时间
+- **错误详情**: 详细记录错误信息和堆栈
+
+#### 可配置的日志级别
+- **简单日志**: 只记录基本的请求成功/失败信息
+- **详细日志**: 记录完整的请求/响应内容和头信息
+- **可配置长度**: 支持限制日志内容的最大长度
+
+#### 调试环境支持
+- **独立调试环境**: 专门的 Docker Compose 配置用于调试
+- **便捷命令**: 通过 Makefile 提供简单的调试命令
+- **实时日志**: 支持实时查看详细日志
+
+### 环境变量配置
+
+```env
+# 请求日志配置
+ENABLE_REQUEST_LOGGING=true                    # 启用基本请求日志
+ENABLE_DETAILED_REQUEST_LOGGING=false          # 启用详细请求日志
+REQUEST_LOG_LEVEL=INFO                         # 请求日志级别
+MAX_PAYLOAD_LOG_LENGTH=2000                    # 最大载荷日志长度
+
+# 通用日志配置
+LOG_LEVEL=INFO                                 # 应用日志级别
+```
+
+### 使用方法
+
+#### 启动调试环境
+```bash
+# 启动调试环境（启用详细日志）
+make debug
+
+# 查看调试日志
+make logs-debug
+
+# 只查看 MCP 服务器日志
+make logs-debug-mcp
+```
+
+#### 手动配置详细日志
+```bash
+# 设置环境变量
+export ENABLE_DETAILED_REQUEST_LOGGING=true
+export REQUEST_LOG_LEVEL=DEBUG
+export LOG_LEVEL=DEBUG
+
+# 启动服务器
+uv run python main.py
+```
+
+### 日志输出示例
+
+#### 简单日志
+```
+2024-08-21 10:00:00 - mcp.requests.simple - INFO - ✅ tools/call - 125.45ms
+2024-08-21 10:00:01 - mcp.requests.simple - ERROR - ❌ tools/call - 89.12ms - ValueError: Invalid query
+```
+
+#### 详细日志
+```
+2024-08-21 10:00:00 - mcp.requests - INFO - 🔵 请求开始 [tools/call] - ID: req_123456
+2024-08-21 10:00:00 - mcp.requests - INFO - 📋 客户端信息 - IP: 192.168.1.100, User-Agent: MCP-Client/1.0
+2024-08-21 10:00:00 - mcp.requests - INFO - 🔧 工具调用 - 名称: execute_sql_query, 参数: {"sql_query": "SELECT * FROM users LIMIT 5"}
+2024-08-21 10:00:00 - mcp.requests - INFO - 🟢 请求成功 [tools/call] - ID: req_123456, 耗时: 125.45ms
+```
+
 ## 2025-08-21 - 添加写操作工具控制配置
 
 ### 变更描述
