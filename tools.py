@@ -7,6 +7,7 @@ table description retrieval and SQL query execution.
 
 import logging
 import os
+import re
 from typing import List, Dict, Any
 from fastmcp import FastMCP
 from database import get_db_manager
@@ -16,6 +17,44 @@ logger = logging.getLogger(__name__)
 
 # Initialize FastMCP
 mcp = FastMCP("MySQL Database MCP Server")
+
+
+def _is_dangerous_sql_keyword_present(sql_query: str, dangerous_keywords: List[str]) -> tuple[bool, str]:
+    """
+    智能检查SQL查询中是否包含危险关键词，避免误判字符串字面量中的关键词
+
+    Args:
+        sql_query (str): 要检查的SQL查询
+        dangerous_keywords (List[str]): 危险关键词列表
+
+    Returns:
+        tuple[bool, str]: (是否包含危险关键词, 发现的关键词或空字符串)
+    """
+    # 移除SQL注释
+    # 移除单行注释 (-- 注释)
+    sql_no_comments = re.sub(r'--.*?$', '', sql_query, flags=re.MULTILINE)
+    # 移除多行注释 (/* 注释 */)
+    sql_no_comments = re.sub(r'/\*.*?\*/', '', sql_no_comments, flags=re.DOTALL)
+
+    # 移除字符串字面量，避免误判字符串内容
+    # 处理单引号字符串
+    sql_no_strings = re.sub(r"'(?:[^'\\]|\\.)*'", "''", sql_no_comments)
+    # 处理双引号字符串
+    sql_no_strings = re.sub(r'"(?:[^"\\\\]|\\\\.)*"', '""', sql_no_strings)
+    # 处理反引号标识符
+    sql_no_strings = re.sub(r'`(?:[^`\\\\]|\\\\.)*`', '``', sql_no_strings)
+
+    # 转换为大写进行关键词检查
+    sql_upper = sql_no_strings.upper()
+
+    # 检查每个危险关键词
+    for keyword in dangerous_keywords:
+        # 使用单词边界确保完整匹配关键词，而不是部分匹配
+        pattern = r'\b' + re.escape(keyword.upper()) + r'\b'
+        if re.search(pattern, sql_upper):
+            return True, keyword
+
+    return False, ""
 
 # 添加请求日志中间件
 def _setup_request_logging():
@@ -170,16 +209,16 @@ def execute_sql_query(sql_query: str) -> Dict[str, Any]:
                 "message": "Only SELECT queries are allowed for security reasons"
             }
         
-        # Check for potentially dangerous keywords
+        # Check for potentially dangerous keywords using intelligent parsing
         dangerous_keywords = ['DROP', 'DELETE', 'UPDATE', 'INSERT', 'ALTER', 'CREATE', 'TRUNCATE']
-        for keyword in dangerous_keywords:
-            if keyword in query_stripped:
-                return {
-                    "success": False,
-                    "data": [],
-                    "row_count": 0,
-                    "message": f"Query contains forbidden keyword: {keyword}"
-                }
+        has_dangerous_keyword, found_keyword = _is_dangerous_sql_keyword_present(sql_query, dangerous_keywords)
+        if has_dangerous_keyword:
+            return {
+                "success": False,
+                "data": [],
+                "row_count": 0,
+                "message": f"Query contains forbidden keyword: {found_keyword}"
+            }
         
         db_manager = get_db_manager()
         results = db_manager.execute_query(sql_query)
@@ -246,16 +285,16 @@ def execute_write_operation(sql_query: str) -> Dict[str, Any]:
                 "message": "Only INSERT and UPDATE operations are allowed"
             }
 
-        # Check for forbidden keywords
+        # Check for forbidden keywords using intelligent parsing
         forbidden_keywords = ['DELETE', 'DROP', 'TRUNCATE', 'ALTER', 'CREATE']
-        for keyword in forbidden_keywords:
-            if keyword in query_stripped:
-                return {
-                    "success": False,
-                    "affected_rows": 0,
-                    "last_insert_id": None,
-                    "message": f"Query contains forbidden keyword: {keyword}"
-                }
+        has_forbidden_keyword, found_keyword = _is_dangerous_sql_keyword_present(sql_query, forbidden_keywords)
+        if has_forbidden_keyword:
+            return {
+                "success": False,
+                "affected_rows": 0,
+                "last_insert_id": None,
+                "message": f"Query contains forbidden keyword: {found_keyword}"
+            }
 
         # Execute the write operation
         db_manager = get_db_manager()
