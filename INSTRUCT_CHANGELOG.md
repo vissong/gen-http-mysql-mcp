@@ -728,3 +728,160 @@ python cost_import.py
 - 减少因误判导致的查询失败
 - 提高SQL工具的可用性和准确性
 - 保持安全性的同时提升易用性
+
+## 2025-09-02 - 调整数据库架构工具功能
+
+### 变更描述
+根据用户需求调整了数据库架构相关的工具功能，简化了 `get_database_schema` 工具的返回内容，并新增了 `get_table_schema` 工具用于获取指定表的建表语句。
+
+### 修改的文件
+
+1. **tools.py**
+   - 重构了 `get_database_schema` 函数，简化返回内容只包含表名和注释
+   - 新增了 `get_table_schema` 工具，用于获取指定表的完整建表语句
+   - 更新了函数文档和注释，提高代码可读性
+
+2. **database.py**
+   - 添加了 `re` 模块导入用于正则表达式处理
+   - 新增了 `get_table_create_statement` 方法，用于获取指定表的 CREATE TABLE 语句
+   - 实现了表名验证和安全检查，防止SQL注入攻击
+   - 添加了详细的错误处理和日志记录
+
+### 功能特性
+
+#### get_database_schema 工具优化
+- **简化输出**: 只返回表名和注释，提供数据库结构的快速概览
+- **性能提升**: 减少查询复杂度，提高响应速度
+- **清晰定位**: 专注于提供数据库表的基本信息
+- **使用指导**: 在文档中明确指出详细信息需使用 get_table_schema 工具
+
+#### 新增 get_table_schema 工具
+- **完整建表语句**: 返回指定表的完整 CREATE TABLE 语句
+- **参数验证**: 严格验证表名格式，防止SQL注入
+- **存在性检查**: 验证表是否存在于当前数据库中
+- **错误处理**: 提供详细的错误信息和处理机制
+- **安全防护**: 使用参数化查询和正则表达式验证
+
+### 主要改进点
+
+1. **简化的 get_database_schema 函数**
+   ```python
+   @mcp.tool()
+   def get_database_schema() -> List[Dict[str, Any]]:
+       """
+       Get basic information about all tables in the database.
+
+       Returns only table names and comments for a quick overview of the database structure.
+       For detailed table schema including columns and indexes, use get_table_schema tool.
+       """
+       # 直接查询表名和注释，不获取详细信息
+       cursor.execute("""
+           SELECT
+               TABLE_NAME as table_name,
+               TABLE_COMMENT as table_comment
+           FROM information_schema.TABLES
+           WHERE TABLE_SCHEMA = %s
+           AND TABLE_TYPE = 'BASE TABLE'
+           ORDER BY TABLE_NAME
+       """, (db_manager.config.database,))
+   ```
+
+2. **新增的 get_table_schema 工具**
+   ```python
+   @mcp.tool()
+   def get_table_schema(table_name: str) -> Dict[str, Any]:
+       """
+       Get the complete schema information for a specific table including the CREATE TABLE statement.
+
+       Args:
+           table_name (str): Name of the table to get schema information for
+
+       Returns:
+           Dict[str, Any]: Dictionary containing:
+               - success: Boolean indicating if operation was successful
+               - table_name: Name of the table
+               - create_statement: Complete CREATE TABLE statement
+               - message: Success or error message
+       """
+   ```
+
+3. **数据库层面的建表语句获取方法**
+   ```python
+   def get_table_create_statement(self, table_name: str) -> str:
+       """
+       Get the CREATE TABLE statement for a specific table
+
+       Args:
+           table_name: Name of the table to get CREATE statement for
+
+       Returns:
+           String containing the CREATE TABLE statement
+       """
+       # 验证表名，防止SQL注入
+       if not re.match(r'^[a-zA-Z0-9_]+$', table_name):
+           raise ValueError("Table name contains invalid characters")
+
+       # 检查表是否存在并获取建表语句
+       cursor.execute(f"SHOW CREATE TABLE `{table_name}`")
+   ```
+
+### 安全特性
+
+#### 输入验证
+- **表名格式检查**: 只允许字母、数字和下划线
+- **SQL注入防护**: 使用正则表达式验证和参数化查询
+- **存在性验证**: 确保表在当前数据库中存在
+- **错误边界**: 详细的错误处理和用户友好的错误信息
+
+#### 权限控制
+- **只读操作**: 所有操作都是只读的，不会修改数据库结构
+- **安全查询**: 使用 SHOW CREATE TABLE 等安全的系统命令
+- **参数化查询**: 防止SQL注入攻击
+- **异常处理**: 完善的异常捕获和处理机制
+
+### 使用方法
+
+#### 获取数据库概览
+```python
+# 获取所有表的基本信息
+tables = get_database_schema()
+# 返回: [{"table_name": "users", "table_comment": "用户表"}, ...]
+```
+
+#### 获取特定表的详细结构
+```python
+# 获取指定表的完整建表语句
+schema = get_table_schema("users")
+# 返回: {
+#   "success": True,
+#   "table_name": "users",
+#   "create_statement": "CREATE TABLE `users` (...)",
+#   "message": "Successfully retrieved schema for table 'users'"
+# }
+```
+
+### 工具分工
+
+#### get_database_schema
+- **用途**: 快速了解数据库中有哪些表
+- **返回**: 表名和注释的简单列表
+- **场景**: 数据库结构探索、表名查找
+
+#### get_table_schema
+- **用途**: 获取特定表的完整结构定义
+- **返回**: 完整的 CREATE TABLE 语句
+- **场景**: 表结构分析、建表语句复制、结构对比
+
+### 性能优化
+
+- **查询简化**: get_database_schema 只查询必要字段，减少数据传输
+- **按需获取**: 详细信息只在需要时通过 get_table_schema 获取
+- **缓存友好**: 简单的查询结果更容易缓存
+- **网络优化**: 减少不必要的数据传输
+
+### 向后兼容
+
+- **工具名称**: 保持 get_database_schema 工具名称不变
+- **返回格式**: 保持字典格式，只是简化了内容
+- **错误处理**: 保持一致的错误处理模式
+- **新增功能**: get_table_schema 作为新工具，不影响现有功能

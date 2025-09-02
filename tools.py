@@ -98,77 +98,121 @@ def _is_write_operations_enabled() -> bool:
 @mcp.tool()
 def get_database_schema() -> List[Dict[str, Any]]:
     """
-    Get comprehensive information about all tables in the database.
-    
-    Returns detailed information including:
-    - Table names and comments
-    - Column definitions with data types, constraints, and comments
-    - Index information including primary keys, unique indexes, and regular indexes
-    - Table statistics like estimated row count and storage size
-    
+    Get basic information about all tables in the database.
+
+    Returns only table names and comments for a quick overview of the database structure.
+    For detailed table schema including columns and indexes, use get_table_schema tool.
+
     Returns:
-        List[Dict[str, Any]]: List of table information dictionaries
+        List[Dict[str, Any]]: List of dictionaries containing:
+            - table_name: Name of the table
+            - table_comment: Comment/description of the table
     """
     try:
         db_manager = get_db_manager()
-        tables = db_manager.get_table_descriptions()
-        
-        # Format the response for better readability
+
+        # 直接查询表名和注释，不获取详细信息
+        with db_manager.get_connection() as conn:
+            cursor = conn.cursor(dictionary=True)
+
+            # 只获取表名和注释
+            cursor.execute("""
+                SELECT
+                    TABLE_NAME as table_name,
+                    TABLE_COMMENT as table_comment
+                FROM information_schema.TABLES
+                WHERE TABLE_SCHEMA = %s
+                AND TABLE_TYPE = 'BASE TABLE'
+                ORDER BY TABLE_NAME
+            """, (db_manager.config.database,))
+
+            tables = cursor.fetchall()
+            cursor.close()
+
+        # 格式化响应，只包含表名和注释
         formatted_tables = []
         for table in tables:
             formatted_table = {
                 "table_name": table["table_name"],
-                "table_comment": table["table_comment"] or "No comment",
-                "engine": table["engine"],
-                "estimated_rows": table["estimated_rows"],
-                "data_size_bytes": table["data_length"],
-                "index_size_bytes": table["index_length"],
-                "columns": [],
-                "indexes": []
+                "table_comment": table["table_comment"] or "No comment"
             }
-            
-            # Format column information
-            for col in table["columns"]:
-                column_info = {
-                    "name": col["column_name"],
-                    "type": col["data_type"],
-                    "nullable": col["is_nullable"] == "YES",
-                    "default": col["column_default"],
-                    "comment": col["column_comment"] or "No comment",
-                    "key": col["column_key"],
-                    "extra": col["extra"]
-                }
-                
-                # Add length/precision information if available
-                if col["max_length"]:
-                    column_info["max_length"] = col["max_length"]
-                if col["numeric_precision"]:
-                    column_info["precision"] = col["numeric_precision"]
-                if col["numeric_scale"]:
-                    column_info["scale"] = col["numeric_scale"]
-                
-                formatted_table["columns"].append(column_info)
-            
-            # Format index information
-            for idx in table["indexes"]:
-                index_info = {
-                    "name": idx["index_name"],
-                    "unique": idx["non_unique"] == 0,
-                    "type": idx["index_type"],
-                    "comment": idx["index_comment"] or "No comment",
-                    "columns": [col["column_name"] for col in sorted(idx["columns"], key=lambda x: x["sequence"])]
-                }
-                formatted_table["indexes"].append(index_info)
-            
             formatted_tables.append(formatted_table)
-        
-        logger.info(f"Successfully retrieved schema for {len(formatted_tables)} tables")
+
+        logger.info(f"Successfully retrieved basic schema for {len(formatted_tables)} tables")
         return formatted_tables
-        
+
     except Exception as e:
         error_msg = f"Failed to retrieve database schema: {str(e)}"
         logger.error(error_msg)
         raise Exception(error_msg)
+
+
+@mcp.tool()
+def get_table_schema(table_name: str) -> Dict[str, Any]:
+    """
+    Get the complete schema information for a specific table including the CREATE TABLE statement.
+
+    This tool provides detailed information about a specific table including:
+    - The complete CREATE TABLE statement
+    - Table comment and metadata
+
+    Args:
+        table_name (str): Name of the table to get schema information for
+
+    Returns:
+        Dict[str, Any]: Dictionary containing:
+            - success: Boolean indicating if operation was successful
+            - table_name: Name of the table
+            - create_statement: Complete CREATE TABLE statement
+            - message: Success or error message
+    """
+    try:
+        # 验证输入参数
+        if not table_name or not table_name.strip():
+            return {
+                "success": False,
+                "table_name": table_name,
+                "create_statement": "",
+                "message": "Table name cannot be empty"
+            }
+
+        table_name = table_name.strip()
+
+        # 获取数据库管理器并执行查询
+        db_manager = get_db_manager()
+        create_statement = db_manager.get_table_create_statement(table_name)
+
+        response = {
+            "success": True,
+            "table_name": table_name,
+            "create_statement": create_statement,
+            "message": f"Successfully retrieved schema for table '{table_name}'"
+        }
+
+        logger.info(f"Successfully retrieved schema for table '{table_name}'")
+        return response
+
+    except ValueError as e:
+        # 处理表名验证错误或表不存在的情况
+        error_msg = str(e)
+        logger.warning(f"Table schema request failed for '{table_name}': {error_msg}")
+        return {
+            "success": False,
+            "table_name": table_name,
+            "create_statement": "",
+            "message": error_msg
+        }
+
+    except Exception as e:
+        # 处理其他数据库错误
+        error_msg = f"Failed to retrieve schema for table '{table_name}': {str(e)}"
+        logger.error(error_msg)
+        return {
+            "success": False,
+            "table_name": table_name,
+            "create_statement": "",
+            "message": error_msg
+        }
 
 
 @mcp.tool()

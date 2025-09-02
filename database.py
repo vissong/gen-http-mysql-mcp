@@ -7,6 +7,7 @@ for the MCP server.
 
 import os
 import logging
+import re
 from typing import Dict, List, Any, Optional
 from contextlib import contextmanager
 import mysql.connector
@@ -335,6 +336,59 @@ class DatabaseManager:
                 
         except Error as e:
             logger.error(f"Error getting table descriptions: {e}")
+            raise
+
+    def get_table_create_statement(self, table_name: str) -> str:
+        """
+        Get the CREATE TABLE statement for a specific table
+
+        Args:
+            table_name: Name of the table to get CREATE statement for
+
+        Returns:
+            String containing the CREATE TABLE statement
+
+        Raises:
+            ValueError: If table name is invalid or table doesn't exist
+            mysql.connector.Error: For database errors
+        """
+        # 验证表名，防止SQL注入
+        if not table_name or not isinstance(table_name, str):
+            raise ValueError("Table name must be a non-empty string")
+
+        # 检查表名是否只包含允许的字符（字母、数字、下划线）
+        if not re.match(r'^[a-zA-Z0-9_]+$', table_name):
+            raise ValueError("Table name contains invalid characters")
+
+        try:
+            with self.get_connection() as conn:
+                cursor = conn.cursor()
+
+                # 首先检查表是否存在
+                cursor.execute("""
+                    SELECT COUNT(*) as count
+                    FROM information_schema.TABLES
+                    WHERE TABLE_SCHEMA = %s AND TABLE_NAME = %s
+                """, (self.config.database, table_name))
+
+                result = cursor.fetchone()
+                if result[0] == 0:
+                    raise ValueError(f"Table '{table_name}' does not exist in database '{self.config.database}'")
+
+                # 获取建表语句
+                cursor.execute(f"SHOW CREATE TABLE `{table_name}`")
+                result = cursor.fetchone()
+                cursor.close()
+
+                if result and len(result) >= 2:
+                    create_statement = result[1]
+                    logger.info(f"Successfully retrieved CREATE statement for table '{table_name}'")
+                    return create_statement
+                else:
+                    raise ValueError(f"Failed to retrieve CREATE statement for table '{table_name}'")
+
+        except Error as e:
+            logger.error(f"Error getting CREATE statement for table '{table_name}': {e}")
             raise
 
 
