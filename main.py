@@ -53,8 +53,11 @@ def main():
 
         # Run the MCP server
         # 从环境变量读取 transport 值，默认为 'sse'
-        transport = os.getenv("MCP_TRANSPORT", "http")
-        mcp.run(transport=transport, host="0.0.0.0", port=8000)
+        transport = os.getenv("MCP_TRANSPORT", "sse")
+        if transport == "stdio":
+            mcp.run()
+        else:
+            mcp.run(transport=transport, host="0.0.0.0", port=8000)
 
     except KeyboardInterrupt:
         logger.info("Server shutdown requested by user")
