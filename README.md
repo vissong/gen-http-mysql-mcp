@@ -76,6 +76,9 @@ DB_WRITE_TIMEOUT=30
 
 # Optional: Enable write operations (INSERT/UPDATE) - set to true to enable
 ENABLE_WRITE_OPERATIONS=false
+
+# Optional: MCP Transport protocol
+MCP_TRANSPORT=sse
 ```
 
 ### Configuration Options
@@ -84,6 +87,12 @@ ENABLE_WRITE_OPERATIONS=false
   - `false` (default): Only read-only operations are allowed (SELECT queries only)
   - `true`: Enables INSERT and UPDATE operations through the `execute_write_operation` tool
   - For security reasons, DELETE, DROP, TRUNCATE, ALTER, and CREATE operations are always blocked
+
+- **MCP_TRANSPORT**: Controls the communication protocol used by the MCP server
+  - `sse` (default): Server-Sent Events over HTTP - recommended for most MCP clients and web-based integrations
+  - `stdio`: Standard input/output - used for command-line MCP clients and direct process communication
+  - When set to `sse`, the server runs on HTTP at `0.0.0.0:8000`
+  - When set to `stdio`, the server communicates through standard input/output streams
 
 - **Request Logging Configuration**:
   - **ENABLE_REQUEST_LOGGING**: Enable basic request logging (`true` by default)
@@ -96,15 +105,37 @@ ENABLE_WRITE_OPERATIONS=false
 
 ### Running the Server
 
-Start the MCP server:
+#### HTTP Transport (Default - Recommended)
+
+Start the MCP server with HTTP/SSE transport:
 ```bash
+# Using default transport (sse)
+uv run python main.py
+
+# Or explicitly set HTTP transport
+export MCP_TRANSPORT=sse
 uv run python main.py
 ```
 
 The server will:
 1. Load configuration from environment variables
 2. Test the database connection
-3. Start the MCP server and listen for requests
+3. Start the HTTP server on `0.0.0.0:8000`
+4. Accept MCP requests via Server-Sent Events
+
+#### Standard I/O Transport
+
+For command-line MCP clients that communicate via stdin/stdout:
+```bash
+export MCP_TRANSPORT=stdio
+uv run python main.py
+```
+
+The server will:
+1. Load configuration from environment variables
+2. Test the database connection
+3. Listen for MCP requests on standard input
+4. Send responses to standard output
 
 ### Using with MCP Clients
 

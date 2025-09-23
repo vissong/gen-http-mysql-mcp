@@ -25,6 +25,8 @@ services:
       DB_WRITE_TIMEOUT: ${DB_WRITE_TIMEOUT:-30}
       # Write operations control
       ENABLE_WRITE_OPERATIONS: ${ENABLE_WRITE_OPERATIONS:-false}
+      # MCP Transport protocol
+      MCP_TRANSPORT: ${MCP_TRANSPORT:-sse}
       # Request logging configuration
       ENABLE_REQUEST_LOGGING: ${ENABLE_REQUEST_LOGGING:-true}
       ENABLE_DETAILED_REQUEST_LOGGING: ${ENABLE_DETAILED_REQUEST_LOGGING:-false}

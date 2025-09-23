@@ -32,6 +32,8 @@ services:
       MAX_PAYLOAD_LOG_LENGTH: 2000
       # General logging level
       LOG_LEVEL: INFO
+      # MCP Transport protocol
+      MCP_TRANSPORT: sse
     depends_on:
       mysql:
         condition: service_healthy

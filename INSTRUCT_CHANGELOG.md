@@ -729,6 +729,101 @@ python cost_import.py
 - 提高SQL工具的可用性和准确性
 - 保持安全性的同时提升易用性
 
+## 2025-08-25 - 补充 MCP_TRANSPORT 环境变量说明
+
+### 变更描述
+在环境变量配置文件和README文档中补充了 `MCP_TRANSPORT` 变量的详细说明，帮助用户了解不同传输协议的使用场景和配置方法。
+
+### 修改的文件
+
+1. **.env.example**
+   - 添加了 `MCP_TRANSPORT=sse` 配置项
+   - 添加了详细的注释说明两种传输协议的用途
+
+2. **README.md**
+   - 在配置示例中添加了 `MCP_TRANSPORT` 变量
+   - 在配置选项部分添加了详细的传输协议说明
+   - 在使用方法部分添加了不同传输协议的启动示例
+   - 区分了HTTP传输和标准I/O传输的使用场景
+
+3. **docker-compose.yml**
+   - 添加了 `MCP_TRANSPORT: sse` 环境变量配置
+
+4. **docker-compose.prod.yml**
+   - 添加了 `MCP_TRANSPORT: ${MCP_TRANSPORT:-sse}` 环境变量配置
+
+5. **docker-compose.debug.yml**
+   - 添加了 `MCP_TRANSPORT: sse` 环境变量配置
+
+### 功能特性
+
+#### 传输协议支持
+- **SSE传输 (默认)**: 使用Server-Sent Events over HTTP，适合大多数MCP客户端
+- **标准I/O传输**: 使用标准输入输出流，适合命令行MCP客户端
+- **自动协议选择**: 根据环境变量自动选择合适的传输协议
+- **向后兼容**: 默认使用SSE传输，保持现有行为不变
+
+#### 配置灵活性
+- **环境变量控制**: 通过 `MCP_TRANSPORT` 环境变量轻松切换协议
+- **Docker支持**: 所有Docker Compose配置都包含传输协议设置
+- **生产环境友好**: 生产环境配置支持通过环境变量覆盖默认值
+
+### 主要改进点
+
+1. **环境变量配置**
+   ```env
+   # Optional: MCP Transport protocol - controls how the server communicates
+   # - "sse" (default): Server-Sent Events over HTTP (recommended for most clients)
+   # - "stdio": Standard input/output (for command-line MCP clients)
+   MCP_TRANSPORT=sse
+   ```
+
+2. **使用方法说明**
+   ```bash
+   # HTTP传输（默认推荐）
+   export MCP_TRANSPORT=sse
+   uv run python main.py
+
+   # 标准I/O传输（命令行客户端）
+   export MCP_TRANSPORT=stdio
+   uv run python main.py
+   ```
+
+3. **Docker配置更新**
+   - 开发环境: `MCP_TRANSPORT: sse`
+   - 生产环境: `MCP_TRANSPORT: ${MCP_TRANSPORT:-sse}`
+   - 调试环境: `MCP_TRANSPORT: sse`
+
+### 使用场景说明
+
+#### SSE传输 (sse) - 推荐
+- **适用场景**: Web应用、HTTP客户端、大多数MCP集成
+- **特点**:
+  - 基于HTTP协议，易于调试和监控
+  - 支持跨网络通信
+  - 服务器运行在 `0.0.0.0:8000`
+  - 支持健康检查和负载均衡
+
+#### 标准I/O传输 (stdio)
+- **适用场景**: 命令行工具、进程间直接通信、脚本集成
+- **特点**:
+  - 通过标准输入输出流通信
+  - 适合进程管道和脚本调用
+  - 无需网络端口，更安全
+  - 适合本地集成和自动化脚本
+
+### 向后兼容性
+
+- **默认行为**: 保持使用SSE传输，现有部署不受影响
+- **配置兼容**: 未设置 `MCP_TRANSPORT` 时自动使用 `sse` 作为默认值
+- **Docker兼容**: 所有现有Docker配置继续正常工作
+
+### 文档完善
+
+- **配置说明**: 详细说明了两种传输协议的区别和适用场景
+- **使用示例**: 提供了不同传输协议的启动命令示例
+- **最佳实践**: 推荐在不同场景下使用合适的传输协议
+
 ## 2025-09-02 - 调整数据库架构工具功能
 
 ### 变更描述
