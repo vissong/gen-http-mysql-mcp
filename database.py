@@ -119,11 +119,6 @@ class DatabaseManager:
             ValueError: If query is not a SELECT statement
             mysql.connector.Error: For database errors
         """
-        # Validate that this is a SELECT query
-        query_stripped = query.strip().upper()
-        if not query_stripped.startswith('SELECT'):
-            raise ValueError("Only SELECT queries are allowed")
-
         try:
             with self.get_connection() as conn:
                 cursor = conn.cursor(dictionary=True)
