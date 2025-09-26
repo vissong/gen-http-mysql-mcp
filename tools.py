@@ -218,14 +218,15 @@ def get_table_schema(table_name: str) -> Dict[str, Any]:
 @mcp.tool()
 def execute_sql_query(sql_query: str) -> Dict[str, Any]:
     """
-    Execute a SQL SELECT query and return the results.
-    
-    This tool only allows SELECT statements for security reasons.
+    Execute a SQL SELECT query or CTE (Common Table Expression) query and return the results.
+
+    This tool allows SELECT statements and WITH clause (CTE) queries for security reasons.
+    CTE queries can start with WITH keyword followed by SELECT operations.
     The query will be executed against the configured MySQL database.
-    
+
     Args:
-        sql_query (str): The SQL SELECT query to execute
-        
+        sql_query (str): The SQL SELECT query or CTE query to execute
+
     Returns:
         Dict[str, Any]: Dictionary containing:
             - success: Boolean indicating if query was successful
@@ -243,14 +244,15 @@ def execute_sql_query(sql_query: str) -> Dict[str, Any]:
                 "message": "SQL query cannot be empty"
             }
         
-        # Additional validation for SELECT only
+        # Additional validation for SELECT and CTE queries only
         query_stripped = sql_query.strip().upper()
-        if not query_stripped.startswith('SELECT'):
+        # 允许 SELECT 查询和 WITH 子句（CTE）查询
+        if not (query_stripped.startswith('SELECT') or query_stripped.startswith('WITH')):
             return {
                 "success": False,
                 "data": [],
                 "row_count": 0,
-                "message": "Only SELECT queries are allowed for security reasons"
+                "message": "Only SELECT queries and CTE (WITH clause) queries are allowed for security reasons"
             }
         
         # Check for potentially dangerous keywords using intelligent parsing
