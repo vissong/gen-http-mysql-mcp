@@ -824,6 +824,123 @@ python cost_import.py
 - **使用示例**: 提供了不同传输协议的启动命令示例
 - **最佳实践**: 推荐在不同场景下使用合适的传输协议
 
+## 2025-08-25 - 增加数据库字符集和排序规则配置
+
+### 变更描述
+调整暴露的数据库配置，增加了 `DB_CHARSET` 和 `DB_COLLATION` 环境变量配置，默认值分别为 `utf8mb4` 和 `utf8mb4_general_ci`，确保对 Unicode 字符（包括 emoji 和特殊符号）的完整支持。
+
+### 修改的文件
+
+1. **database.py**
+   - 在 `DatabaseConfig` 类中添加了 `charset` 和 `collation` 配置项
+   - 从环境变量 `DB_CHARSET` 和 `DB_COLLATION` 读取配置
+   - 更新 `get_connection_config` 方法使用配置的字符集和排序规则
+   - 移除了硬编码的字符集配置，改为使用环境变量
+
+2. **.env.example**
+   - 添加了 `DB_CHARSET=utf8mb4` 配置项
+   - 添加了 `DB_COLLATION=utf8mb4_general_ci` 配置项
+   - 添加了详细的配置说明注释
+
+3. **README.md**
+   - 在配置示例中添加了字符集和排序规则配置
+   - 在配置选项部分添加了详细的字符集配置说明
+   - 解释了 utf8mb4 字符集的优势和适用场景
+
+4. **docker-compose.yml**
+   - 添加了 `DB_CHARSET: utf8mb4` 环境变量
+   - 添加了 `DB_COLLATION: utf8mb4_general_ci` 环境变量
+
+5. **docker-compose.prod.yml**
+   - 添加了 `DB_CHARSET: ${DB_CHARSET:-utf8mb4}` 环境变量
+   - 添加了 `DB_COLLATION: ${DB_COLLATION:-utf8mb4_general_ci}` 环境变量
+
+6. **docker-compose.debug.yml**
+   - 添加了 `DB_CHARSET: utf8mb4` 环境变量
+   - 添加了 `DB_COLLATION: utf8mb4_general_ci` 环境变量
+
+### 功能特性
+
+#### 字符集配置支持
+- **环境变量控制**: 通过 `DB_CHARSET` 和 `DB_COLLATION` 环境变量配置字符集
+- **默认 UTF-8 支持**: 默认使用 `utf8mb4` 字符集，支持完整的 UTF-8 字符
+- **灵活配置**: 支持各种 MySQL 字符集和排序规则组合
+- **向后兼容**: 保持现有连接行为，只是将配置暴露为环境变量
+
+#### Unicode 字符支持
+- **完整 UTF-8**: utf8mb4 支持 4 字节 UTF-8 字符，包括 emoji 和特殊符号
+- **国际化友好**: 支持各种语言字符的正确存储和检索
+- **现代应用适配**: 适合现代 Web 应用和移动应用的字符集需求
+
+### 主要改进点
+
+1. **数据库配置类更新**
+   ```python
+   # 字符集和排序规则配置
+   self.charset = os.getenv('DB_CHARSET', 'utf8mb4')
+   self.collation = os.getenv('DB_COLLATION', 'utf8mb4_general_ci')
+   ```
+
+2. **连接配置动态化**
+   ```python
+   return {
+       # ... 其他配置 ...
+       'charset': self.charset,
+       'collation': self.collation,
+       'use_unicode': True,
+   }
+   ```
+
+3. **环境变量配置**
+   ```env
+   # Optional: Database charset and collation settings
+   DB_CHARSET=utf8mb4
+   DB_COLLATION=utf8mb4_general_ci
+   ```
+
+### 默认配置说明
+
+#### 推荐配置 (默认)
+- **DB_CHARSET=utf8mb4**: 支持完整的 UTF-8 字符集
+- **DB_COLLATION=utf8mb4_general_ci**: 通用排序规则，性能良好
+
+#### 其他可选配置
+- **utf8mb4_unicode_ci**: 更准确的 Unicode 排序，但性能稍慢
+- **utf8mb4_bin**: 区分大小写的二进制排序
+- **utf8_general_ci**: 兼容旧版本 MySQL，但不支持 4 字节字符
+
+### 使用场景
+
+#### 现代应用 (推荐默认配置)
+- 支持 emoji 和特殊 Unicode 字符
+- 国际化应用和多语言支持
+- 社交媒体和用户生成内容
+
+#### 传统应用
+- 可配置为 `utf8` + `utf8_general_ci` 兼容旧系统
+- 性能优先场景可选择 `utf8mb4_bin`
+- 特定语言环境可选择对应的排序规则
+
+### 向后兼容性
+
+- **默认行为**: 保持使用 utf8mb4 字符集，现有部署不受影响
+- **配置兼容**: 未设置环境变量时使用推荐的默认值
+- **连接兼容**: 所有现有数据库连接继续正常工作
+
+### 测试验证
+
+- 创建了完整的字符集配置测试脚本
+- 验证了默认配置和自定义配置的正确性
+- 测试了多种字符集和排序规则组合
+- 确保连接配置正确传递字符集参数
+
+### 安全和性能考虑
+
+- **字符集安全**: utf8mb4 避免了 utf8 字符集的截断问题
+- **性能平衡**: 默认使用 general_ci 排序规则平衡性能和功能
+- **配置验证**: 环境变量配置经过充分测试验证
+- **错误处理**: 保持原有的数据库连接错误处理机制
+
 ## 2025-09-02 - 调整数据库架构工具功能
 
 ### 变更描述

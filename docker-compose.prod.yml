@@ -23,6 +23,9 @@ services:
       DB_CONNECT_TIMEOUT: ${DB_CONNECT_TIMEOUT:-10}
       DB_READ_TIMEOUT: ${DB_READ_TIMEOUT:-30}
       DB_WRITE_TIMEOUT: ${DB_WRITE_TIMEOUT:-30}
+      # Database charset and collation settings
+      DB_CHARSET: ${DB_CHARSET:-utf8mb4}
+      DB_COLLATION: ${DB_COLLATION:-utf8mb4_general_ci}
       # Write operations control
       ENABLE_WRITE_OPERATIONS: ${ENABLE_WRITE_OPERATIONS:-false}
       # MCP Transport protocol

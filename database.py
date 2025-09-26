@@ -36,6 +36,9 @@ class DatabaseConfig:
         self.connect_timeout = int(os.getenv('DB_CONNECT_TIMEOUT', '10'))
         self.read_timeout = int(os.getenv('DB_READ_TIMEOUT', '30'))
         self.write_timeout = int(os.getenv('DB_WRITE_TIMEOUT', '30'))
+        # 字符集和排序规则配置
+        self.charset = os.getenv('DB_CHARSET', 'utf8mb4')
+        self.collation = os.getenv('DB_COLLATION', 'utf8mb4_general_ci')
         # 控制是否启用写操作工具的配置项
         self.enable_write_operations = os.getenv('ENABLE_WRITE_OPERATIONS', 'false').lower() in ('true', '1', 'yes', 'on')
     
@@ -58,7 +61,8 @@ class DatabaseConfig:
             'database': self.database,
             'connection_timeout': self.connect_timeout,
             'autocommit': True,
-            'charset': 'utf8mb4',
+            'charset': self.charset,
+            'collation': self.collation,
             'use_unicode': True,
         }
 

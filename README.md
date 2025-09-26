@@ -74,6 +74,10 @@ DB_CONNECT_TIMEOUT=10
 DB_READ_TIMEOUT=30
 DB_WRITE_TIMEOUT=30
 
+# Optional: Database charset and collation settings
+DB_CHARSET=utf8mb4
+DB_COLLATION=utf8mb4_general_ci
+
 # Optional: Enable write operations (INSERT/UPDATE) - set to true to enable
 ENABLE_WRITE_OPERATIONS=false
 
@@ -87,6 +91,12 @@ MCP_TRANSPORT=sse
   - `false` (default): Only read-only operations are allowed (SELECT queries only)
   - `true`: Enables INSERT and UPDATE operations through the `execute_write_operation` tool
   - For security reasons, DELETE, DROP, TRUNCATE, ALTER, and CREATE operations are always blocked
+
+- **Database Character Set Configuration**:
+  - **DB_CHARSET**: Database connection character set (`utf8mb4` by default)
+  - **DB_COLLATION**: Database connection collation (`utf8mb4_general_ci` by default)
+  - These settings ensure proper handling of Unicode characters including emojis and special symbols
+  - Recommended to use `utf8mb4` charset for full UTF-8 support in MySQL
 
 - **MCP_TRANSPORT**: Controls the communication protocol used by the MCP server
   - `sse` (default): Server-Sent Events over HTTP - recommended for most MCP clients and web-based integrations
